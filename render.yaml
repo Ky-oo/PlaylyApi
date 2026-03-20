@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: playlyapi
+    runtime: node
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm start

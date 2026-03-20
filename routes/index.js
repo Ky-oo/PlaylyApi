@@ -4,7 +4,7 @@ var router = express.Router();
 router.get("/", function (req, res, next) {
   res.json({
     title:
-      "Bienvenue sur BoardApi. Merci de lire le README.md pour plus d'informations.",
+      "Bienvenue sur PlaylyApi. Merci de lire le README.md pour plus d'informations.",
   });
 });
 
