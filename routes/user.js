@@ -23,7 +23,13 @@ router.get("/:id", verifyAuth, async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(sanitizeUser(user));
+    const isOwner = req.user.id === user.id;
+    const isAdmin = req.user.role === "admin";
+    if (isOwner || isAdmin) {
+      return res.json(sanitizeUser(user));
+    }
+    const { id, firstname, lastname, pseudo } = user;
+    return res.json({ id, firstname, lastname, pseudo });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -43,12 +49,20 @@ router.put("/:id", verifyAuth, async (req, res) => {
     if (req.user.id !== parseInt(req.params.id) && req.user.role !== "admin") {
       return res.status(403).json({ error: "Forbidden" });
     }
-    if (req.body.role && req.user.role !== "admin") {
-      req.body.role = "user";
-    }
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    await user.update(req.body);
+    const { firstname, lastname, pseudo, email, city, password } = req.body;
+    const updates = {};
+    if (firstname !== undefined) updates.firstname = firstname;
+    if (lastname !== undefined) updates.lastname = lastname;
+    if (pseudo !== undefined) updates.pseudo = pseudo;
+    if (email !== undefined) updates.email = email;
+    if (city !== undefined) updates.city = city;
+    if (password !== undefined) updates.password = password;
+    if (req.body.role !== undefined && req.user.role === "admin") {
+      updates.role = req.body.role;
+    }
+    await user.update(updates);
     res.json(sanitizeUser(user));
   } catch (err) {
     res.status(400).json({ error: err.message });

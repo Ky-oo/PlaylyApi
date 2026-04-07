@@ -18,7 +18,7 @@ router.get("/:id", async (req, res) => {
 
     if (!message)
       return res.status(404).json({ error: "ChatMessage not found" });
-    if (message.chatUserId !== req.user.id && req.user.role !== "admin") {
+    if (message.userId !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ error: "Forbidden" });
     }
     res.json(message);
@@ -29,13 +29,19 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    if (!req.body.chatId || !req.body.userId) {
-      return res.status(400).json({ error: "chatId and userId are required" });
+    const chatId = req.body.chatId;
+    const content = req.body.content;
+    if (!chatId) {
+      return res.status(400).json({ error: "chatId is required" });
     }
-    if (req.body.userId !== req.user.id && req.user.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden" });
+    if (typeof content !== "string" || !content.trim()) {
+      return res.status(400).json({ error: "content is required" });
     }
-    const message = await ChatMessage.create(req.body);
+    const message = await ChatMessage.create({
+      chatId,
+      userId: req.user.id,
+      content: content.trim(),
+    });
     res.status(201).json(message);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -47,10 +53,14 @@ router.put("/:id", async (req, res) => {
     const message = await ChatMessage.findByPk(req.params.id);
     if (!message)
       return res.status(404).json({ error: "ChatMessage not found" });
-    if (message.chatUserId !== req.user.id && req.user.role !== "admin") {
+    if (message.userId !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ error: "Forbidden" });
     }
-    await message.update(req.body);
+    const content = req.body.content;
+    if (typeof content !== "string" || !content.trim()) {
+      return res.status(400).json({ error: "content is required" });
+    }
+    await message.update({ content: content.trim() });
     res.json(message);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -62,7 +72,7 @@ router.delete("/:id", async (req, res) => {
     const message = await ChatMessage.findByPk(req.params.id);
     if (!message)
       return res.status(404).json({ error: "ChatMessage not found" });
-    if (message.chatUserId !== req.user.id && req.user.role !== "admin") {
+    if (message.userId !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ error: "Forbidden" });
     }
     await message.destroy();

@@ -66,19 +66,19 @@ const defaultInclude = [
   {
     model: User,
     as: "hostUser",
-    attributes: ["id", "firstname", "lastname", "pseudo", "email", "role"],
+    attributes: ["id", "firstname", "lastname", "pseudo"],
   },
   { model: Organisation, as: "hostOrganisation" },
   {
     model: User,
     as: "users",
-    attributes: ["id", "firstname", "lastname", "pseudo", "email"],
+    attributes: ["id", "firstname", "lastname", "pseudo"],
     through: { attributes: [] },
   },
   {
     model: GuestUser,
     as: "guestUsers",
-    attributes: ["id", "name", "email"],
+    attributes: ["id", "name"],
     through: { attributes: [] },
   },
 ];
@@ -184,9 +184,7 @@ router.post("/checkout", verifyAuth, async (req, res) => {
       });
     } catch (err) {
       console.error("Payment record error:", err);
-      return res
-        .status(500)
-        .json({ error: "Unable to create payment record" });
+      return res.status(500).json({ error: "Unable to create payment record" });
     }
 
     res.json({ url: session.url, sessionId: session.id });
@@ -237,9 +235,8 @@ router.post("/confirm", verifyAuth, async (req, res) => {
         return res.status(400).json({ error: "Payment not completed" });
       }
       try {
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          paymentIntentId
-        );
+        const paymentIntent =
+          await stripe.paymentIntents.retrieve(paymentIntentId);
         if (paymentIntent?.status !== "requires_capture") {
           return res.status(400).json({ error: "Payment not completed" });
         }
@@ -262,7 +259,8 @@ router.post("/confirm", verifyAuth, async (req, res) => {
     let paymentRecord = await Payment.findOne({ where: { sessionId } });
     if (
       paymentRecord &&
-      (paymentRecord.userId !== userId || paymentRecord.activityId !== activityId)
+      (paymentRecord.userId !== userId ||
+        paymentRecord.activityId !== activityId)
     ) {
       return res.status(400).json({ error: "Invalid payment record" });
     }
@@ -307,7 +305,10 @@ router.post("/confirm", verifyAuth, async (req, res) => {
         return res.json({ status: "approved" });
       }
       if (request) {
-        await request.update({ status: "pending", paymentId: paymentRecord.id });
+        await request.update({
+          status: "pending",
+          paymentId: paymentRecord.id,
+        });
       } else {
         await ParticipationRequest.create({
           activityId,
@@ -335,7 +336,7 @@ router.post("/confirm", verifyAuth, async (req, res) => {
         const fullUser = await User.findByPk(req.user.id);
         const displayName = formatUserName(fullUser) || "Un participant";
         const systemContent = buildSystemContent(
-          `${displayName} a rejoint l'?v?nement`
+          `${displayName} a rejoint l'?v?nement`,
         );
         const systemMessage = await ChatMessage.create({
           chatId: chat.id,

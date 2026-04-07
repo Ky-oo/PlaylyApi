@@ -133,7 +133,7 @@ const addParticipantToActivity = async (activity, userId) => {
     const fullUser = await User.findByPk(userId);
     const displayName = formatUserName(fullUser) || "Un participant";
     const systemContent = buildSystemContent(
-      `${displayName} a rejoint l'événement`
+      `${displayName} a rejoint l'événement`,
     );
     const systemMessage = await ChatMessage.create({
       chatId: chat.id,
@@ -189,19 +189,19 @@ const defaultInclude = [
   {
     model: User,
     as: "hostUser",
-    attributes: ["id", "firstname", "lastname", "pseudo", "email", "role"],
+    attributes: ["id", "pseudo"],
   },
   { model: Organisation, as: "hostOrganisation" },
   {
     model: User,
     as: "users",
-    attributes: ["id", "firstname", "lastname", "pseudo", "email"],
+    attributes: ["id", "pseudo"],
     through: { attributes: [] },
   },
   {
     model: GuestUser,
     as: "guestUsers",
-    attributes: ["id", "name", "email"],
+    attributes: ["id", "name"],
     through: { attributes: [] },
   },
 ];
@@ -284,7 +284,7 @@ router.put("/:id", verifyAuth, async (req, res) => {
     let isHostOrganisation = false;
     if (activity.hostOrganisationId) {
       const organisation = await Organisation.findByPk(
-        activity.hostOrganisationId
+        activity.hostOrganisationId,
       );
       isHostOrganisation = organisation && organisation.ownerId === req.user.id;
     }
@@ -305,7 +305,7 @@ router.put("/:id", verifyAuth, async (req, res) => {
             ? req.body.hostOrganisationId
             : activity.hostOrganisationId,
       },
-      req.user
+      req.user,
     );
     if (validationError)
       return res.status(400).json({ error: validationError });
@@ -330,7 +330,7 @@ router.post("/:id/join", verifyAuth, async (req, res) => {
     if (!activity) return res.status(404).json({ error: "Activity not found" });
 
     const alreadyJoined = activity.users.some(
-      (user) => user.id === req.user.id
+      (user) => user.id === req.user.id,
     );
     if (alreadyJoined) {
       return res.json(activity);
@@ -419,7 +419,7 @@ router.post("/:id/guest", verifyAuth, async (req, res) => {
 
     const chat = await ensureActivityChat(activity);
     const systemContent = buildSystemContent(
-      `L'organisateur a ajoute ${guestUser.name} manuellement. Cette personne ne peut pas utiliser le chat.`
+      `L'organisateur a ajoute ${guestUser.name} manuellement. Cette personne ne peut pas utiliser le chat.`,
     );
     const systemMessage = await ChatMessage.create({
       chatId: chat.id,
@@ -467,7 +467,7 @@ router.post("/:id/request", verifyAuth, async (req, res) => {
     }
 
     const alreadyJoined = activity.users.some(
-      (user) => user.id === req.user.id
+      (user) => user.id === req.user.id,
     );
     if (alreadyJoined) {
       return res.status(400).json({ error: "Already joined" });
@@ -542,7 +542,7 @@ router.get("/:id/request", verifyAuth, async (req, res) => {
           if (!ensureStripeConfigured(res)) return;
           try {
             const session = await stripe.checkout.sessions.retrieve(
-              payment.sessionId
+              payment.sessionId,
             );
             if (session?.payment_status === "paid") {
               const paymentIntentId =
@@ -692,7 +692,7 @@ router.post(
       }
 
       const alreadyJoined = activity.users.some(
-        (user) => user.id === request.userId
+        (user) => user.id === request.userId,
       );
       const participantCount = getParticipantCount(activity);
       if (
@@ -758,7 +758,7 @@ router.post(
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
-  }
+  },
 );
 
 router.post("/:id/requests/:requestId/reject", verifyAuth, async (req, res) => {
@@ -918,7 +918,7 @@ router.delete("/:id", verifyAuth, async (req, res) => {
     let isHostOrganisation = false;
     if (activity.hostOrganisationId) {
       const organisation = await Organisation.findByPk(
-        activity.hostOrganisationId
+        activity.hostOrganisationId,
       );
       isHostOrganisation = organisation && organisation.ownerId === req.user.id;
     }
