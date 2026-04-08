@@ -9,6 +9,9 @@ const ChatMessage = require("./ChatMessage");
 const ChatMessageSeen = require("./ChatMessageSeen");
 const Payment = require("./Payment");
 const ParticipationRequest = require("./ParticipationRequest");
+const Group = require("./Group");
+const GroupMember = require("./GroupMember");
+const GroupMessage = require("./GroupMessage");
 
 Organisation.belongsTo(User, {
   foreignKey: "ownerId",
@@ -130,6 +133,77 @@ Chat.hasOne(Activity, {
   onDelete: "CASCADE",
 });
 
+// Group associations
+Group.belongsToMany(User, {
+  through: GroupMember,
+  foreignKey: "group_id",
+  otherKey: "user_id",
+  as: "members",
+  onDelete: "CASCADE",
+});
+User.belongsToMany(Group, {
+  through: GroupMember,
+  foreignKey: "user_id",
+  otherKey: "group_id",
+  as: "groups",
+  onDelete: "CASCADE",
+});
+Group.hasMany(GroupMember, {
+  foreignKey: "group_id",
+  as: "groupMembers",
+  onDelete: "CASCADE",
+});
+GroupMember.belongsTo(Group, {
+  foreignKey: "group_id",
+  onDelete: "CASCADE",
+});
+GroupMember.belongsTo(User, {
+  foreignKey: "user_id",
+  as: "user",
+  onDelete: "CASCADE",
+});
+User.hasMany(GroupMember, {
+  foreignKey: "user_id",
+  as: "groupMemberships",
+  onDelete: "CASCADE",
+});
+
+Group.hasMany(GroupMessage, {
+  foreignKey: "group_id",
+  as: "messages",
+  onDelete: "CASCADE",
+});
+GroupMessage.belongsTo(Group, {
+  foreignKey: "group_id",
+  onDelete: "CASCADE",
+});
+GroupMessage.belongsTo(User, {
+  foreignKey: "sender_id",
+  as: "sender",
+  onDelete: "CASCADE",
+});
+User.hasMany(GroupMessage, {
+  foreignKey: "sender_id",
+  as: "groupMessages",
+  onDelete: "CASCADE",
+});
+GroupMessage.belongsTo(GroupMessage, {
+  foreignKey: "reply_to_id",
+  as: "replyTo",
+  onDelete: "SET NULL",
+});
+
+Group.hasMany(Activity, {
+  foreignKey: "groupId",
+  as: "activities",
+  onDelete: "CASCADE",
+});
+Activity.belongsTo(Group, {
+  foreignKey: "groupId",
+  as: "group",
+  onDelete: "CASCADE",
+});
+
 Chat.belongsToMany(User, {
   through: "ChatUsers",
   foreignKey: "chatId",
@@ -205,4 +279,7 @@ module.exports = {
   ChatMessageSeen,
   Payment,
   ParticipationRequest,
+  Group,
+  GroupMember,
+  GroupMessage,
 };

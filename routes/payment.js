@@ -68,7 +68,7 @@ const defaultInclude = [
     as: "hostUser",
     attributes: ["id", "firstname", "lastname", "pseudo"],
   },
-  { model: Organisation, as: "hostOrganisation" },
+  { model: Organisation, as: "hostOrganisation", attributes: ["id", "name"] },
   {
     model: User,
     as: "users",

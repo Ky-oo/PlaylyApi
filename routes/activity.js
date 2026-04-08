@@ -9,8 +9,9 @@ const {
   ChatMessage,
   Payment,
   ParticipationRequest,
+  GroupMember,
 } = require("../model");
-const { verifyAuth } = require("../middleware/auth");
+const { verifyAuth, optionalAuth } = require("../middleware/auth");
 const {
   messageInclude,
   serializeMessage,
@@ -191,7 +192,7 @@ const defaultInclude = [
     as: "hostUser",
     attributes: ["id", "pseudo"],
   },
-  { model: Organisation, as: "hostOrganisation" },
+  { model: Organisation, as: "hostOrganisation", attributes: ["id", "name"] },
   {
     model: User,
     as: "users",
@@ -206,10 +207,48 @@ const defaultInclude = [
   },
 ];
 
-router.get("/", async (req, res) => {
+// For homeHost activities, hide address and participants from outsiders
+const sanitizeActivityForUser = (activity, userId) => {
+  const data = activity.toJSON ? activity.toJSON() : { ...activity };
+  if (!data.homeHost) return data;
+
+  const isHost =
+    data.hostUserId === userId ||
+    (data.hostOrganisation && data.hostUser?.id === userId);
+  const isParticipant =
+    Array.isArray(data.users) && data.users.some((u) => u.id === userId);
+
+  if (!isHost && !isParticipant) {
+    data.address = null;
+    data.latitude = null;
+    data.longitude = null;
+    data.place_name = null;
+    data.users = [];
+    data.guestUsers = [];
+  }
+  return data;
+};
+
+router.get("/", optionalAuth, async (req, res) => {
   try {
     const { page, limit, offset } = getPaginationParams(req.query);
     const where = getHostFilters(req.query);
+
+    // Exclude activities that belong to a group unless the requester is a member
+    const userId = req.user?.id;
+    if (userId) {
+      const memberships = await GroupMember.findAll({
+        where: { user_id: userId },
+        attributes: ["group_id"],
+      });
+      const memberGroupIds = memberships.map((m) => m.group_id);
+      where[Op.or] = [
+        { groupId: null },
+        { groupId: { [Op.in]: memberGroupIds.length ? memberGroupIds : [-1] } },
+      ];
+    } else {
+      where.groupId = null;
+    }
 
     const { rows, count } = await Activity.findAndCountAll({
       include: defaultInclude,
@@ -220,7 +259,7 @@ router.get("/", async (req, res) => {
     });
 
     res.json({
-      data: rows,
+      data: rows.map((a) => sanitizeActivityForUser(a, userId)),
       pagination: {
         page,
         limit,
@@ -233,13 +272,26 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", optionalAuth, async (req, res) => {
   try {
     const activity = await Activity.findByPk(req.params.id, {
       include: defaultInclude,
     });
     if (!activity) return res.status(404).json({ error: "Activity not found" });
-    res.json(activity);
+
+    // If this activity belongs to a group, only members can see it
+    if (activity.groupId) {
+      const userId = req.user?.id;
+      if (!userId) return res.status(403).json({ error: "Forbidden" });
+      const membership = await GroupMember.findOne({
+        where: { group_id: activity.groupId, user_id: userId },
+      });
+      if (!membership && req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+    }
+
+    res.json(sanitizeActivityForUser(activity, req.user?.id));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

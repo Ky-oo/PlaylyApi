@@ -18,6 +18,7 @@ var chatRouter = require("./routes/chat");
 var chatMessageRouter = require("./routes/chatmessage");
 var authRouter = require("./routes/auth");
 var corsMiddleware = require("./middleware/cors");
+var groupRouter = require("./routes/group");
 
 require("./model");
 
@@ -40,6 +41,7 @@ app.use(verifyAuth);
 
 app.use("/chat", chatRouter);
 app.use("/chatmessage", chatMessageRouter);
+app.use("/group", groupRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

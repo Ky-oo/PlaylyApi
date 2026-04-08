@@ -30,7 +30,20 @@ const requireRole =
     next();
   };
 
+const optionalAuth = (req, res, next) => {
+  const token = getToken(req);
+  if (token) {
+    try {
+      req.user = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (_) {
+      // Ignore invalid token, user will be treated as unauthenticated
+    }
+  }
+  next();
+};
+
 module.exports = {
   verifyAuth,
   requireRole,
+  optionalAuth,
 };

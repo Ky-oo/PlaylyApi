@@ -76,6 +76,10 @@ const Activity = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    groupId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     chatId: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -122,12 +126,12 @@ const Activity = sequelize.define(
         }
         if (this.hostUserId && this.hostOrganisationId) {
           throw new Error(
-            "Activity cannot have both a user and organisation host."
+            "Activity cannot have both a user and organisation host.",
           );
         }
       },
     },
-  }
+  },
 );
 
 module.exports = Activity;
